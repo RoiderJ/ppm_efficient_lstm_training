@@ -13,19 +13,65 @@ from pathlib import Path
 import os
 import joblib
 
-def buildOHE(index,n):
+def buildOHE(index: int,
+             n: int):
+    """
+    Get one hot encoding.
+
+    Parameters
+    ----------
+    index: int
+        The index to be encoded as 1.
+    n: int
+        Total number of values present. Determines the length of the encoded vector.
+
+    Returns
+    -------
+    list
+        One hot encoding as a list.
+
+    """
     L=[0]*n
     L[index]=1
     return L
 
-def load_dataset(name,
-                 hdf5_filepath_train,
-                 hdf5_filepath_test,
-                 scale_label,
-                 one_hot_encoding,
-                 prefix_based,
-                 static_data_as_sequence,
-                 data_storage):
+def load_dataset(name: str,
+                 hdf5_filepath_train: str,
+                 hdf5_filepath_test: str,
+                 scale_label: bool,
+                 one_hot_encoding: bool,
+                 prefix_based: bool,
+                 static_data_as_sequence: bool,
+                 data_storage: str):
+    """
+    Initiate preparation of dataset.
+
+    Parameters
+    ----------
+    name: str
+        The name of the dataset as indicated in dataset_config.py
+    hdf5_filepath_train: str
+        The folder to which the training and validation features are saved to.
+    hdf5_filepath_test: str
+        The folder to which the test features are saved to.
+    scale_label: bool
+        Indicates whether the target labels should be scaled.
+    one_hot_encoding: bool
+        Indicates whether one hot encoding is applied or integer encoding.
+    prefix_based: bool
+        Indicates whether data is prepared for prefix-based approaches (many-to-one)
+        or trace_based approaches (many-to-many)
+    static_data_as_sequence: bool
+        Indicates whether case attributes are duplicated for each timestep.
+    data_storage: str
+        Location where the event log can be found.
+
+    Returns
+    -------
+    int
+       Integer indicating the maximum label.
+
+    """
     return _load_dataset_name(data_storage + "/" + name + ".csv",
                               getattr(dataset_config, name),
                               prefix_based=prefix_based,
@@ -39,6 +85,27 @@ def load_dataset(name,
 
 def check_static_values(group_df,
                         cols_dict):
+    """
+    Check whether columns indicated as case attributes contain really only one value per case.
+
+    Parameters
+    ----------
+    group_df: pd.DataFrame
+        Dataframe containing events only for one case.
+    cols_dict: dict
+        Must contain the keys 'CATEGORICAL_STATIC_COLUMNS' and 'NUMERICAL_STATIC_COLUMNS'.
+        The values to these keys are lists consisting of strings that indicate columns which are case attributes.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If a static column has more than one value for a case.
+
+    """
     for col in cols_dict['CATEGORICAL_STATIC_COLUMNS']:
         if len(group_df[col].unique()) != 1:
             pd.set_option('display.max_columns', None)
@@ -51,13 +118,40 @@ def check_static_values(group_df,
             raise ValueError('Static column ' + str(col) + ' has more than one value.')
 
 
-def generate_batch(index,
-                   group_df,
-                   one_hot_encoding,  # either True or False. If False, we just return the index number, otherwise full one hot encoding
-                   prefix_based,
-                   ohe_encoders,
-                   cols_dict,
-                   static_as_sequence):
+def generate_batch(index: int,
+                   group_df: pd.DataFrame,
+                   one_hot_encoding: bool,
+                   prefix_based: bool,
+                   ohe_encoders: dict,
+                   cols_dict: dict,
+                   static_as_sequence: bool):
+    """
+    Create feature vector for a case id.
+
+    Parameters
+    ----------
+    index: int
+        Case id.
+    group_df: pd.DataFrame
+        Dataframe with all events for one case id.
+    one_hot_encoding: bool
+        True if one hot encoding should be applied. Otherwise, each category is encoded with one integer value.
+    prefix_based: bool
+        True if data is generate for a many-to-one approach.
+    ohe_encoders: dict
+        Keys are of type string and indicate a column name. The values are of type sklearn.preprocessing.OrdinalEncoder.
+    cols_dict: dict
+        Dictionary containing information about static, dynamic, categorical and numerical columns.
+    static_as_sequence: bool
+        True if event attributes should be duplicated for each timestep.
+
+    Returns
+    -------
+    list: Dynamic input features
+    list: Target labels
+    list: Case id'S
+    list: Static input features. Only returned if static_as_sequence is False.
+    """
 
     check_static_values(group_df=group_df,
                         cols_dict=cols_dict)
@@ -90,12 +184,34 @@ def generate_batch(index,
     return dynamic_data, labels, cases, static_data
 
 
-def generate_static_batch(group_df,
-                          one_hot_encoding,
-                          prefix_based,
-                          ohe_encoders,
-                          categorical_columns,
-                          numerical_columns):
+def generate_static_batch(group_df: pd.DataFrame,
+                          one_hot_encoding: bool,
+                          prefix_based: bool,
+                          ohe_encoders: dict,
+                          categorical_columns: list,
+                          numerical_columns: list):
+    """
+    Create feature vector for static attributes.
+
+    Parameters
+    ----------
+    group_df: pd.DataFrame
+        Dataframe with all events for one case id.
+    one_hot_encoding: bool
+        True if one hot encoding should be applied. Otherwise, each category is encoded with one integer value.
+    prefix_based: bool
+        True if data is generate for a many-to-one approach.
+    ohe_encoders: dict
+        Keys are of type string and indicate a column name. The values are of type sklearn.preprocessing.OrdinalEncoder.
+    categorical_columns: list
+        List of str indicating the columns with categorical features.
+    numerical_columns: list
+        List of str indicating the columns with numerical features.
+
+    Returns
+    -------
+    list: Static input features
+    """
     data_large = list()
     length = len(group_df)
     if prefix_based:
@@ -128,14 +244,38 @@ def generate_static_batch(group_df,
     return data_large
 
 
-def generate_dynamic_batch(index,
-                           group_df,
-                           one_hot_encoding,  # either True or False. If False, we just return the index number, otherwise full one hot encoding
-                           prefix_based,
-                           ohe_encoders,
-                           categorical_columns,
-                           numerical_columns
+def generate_dynamic_batch(index: int,
+                           group_df: pd.DataFrame,
+                           one_hot_encoding: bool,
+                           prefix_based: bool,
+                           ohe_encoders: dict,
+                           categorical_columns: list,
+                           numerical_columns: list
                            ):
+    """
+    Create dynamic features.
+
+    Parameters
+    ----------
+    index: int
+        Case id.
+    group_df: pd.DataFrame
+        Dataframe with all events for one case id.
+    one_hot_encoding: bool
+        True if one hot encoding should be applied. Otherwise, each category is encoded with one integer value.
+    prefix_based: bool
+        True if data is generate for a many-to-one approach.
+    ohe_encoders: dict
+        Keys are of type string and indicate a column name. The values are of type sklearn.preprocessing.OrdinalEncoder.
+    categorical_columns: list
+        List of str indicating the columns with categorical features.
+    numerical_columns: list
+        List of str indicating the columns with numerical features.
+
+    Returns
+    -------
+
+    """
 
     data_large = list()
     labels = list()
@@ -176,9 +316,26 @@ def generate_dynamic_batch(index,
     return data_large, labels, cases
 
 
-def get_categorical_column_names(one_hot_encoding,
-                                 ohe_encoders,
-                                 cols):
+def get_categorical_column_names(one_hot_encoding: bool,
+                                 ohe_encoders: dict,
+                                 cols: list):
+    """
+    Get names of categorical columns.
+
+    Parameters
+    ----------
+    one_hot_encoding: bool
+        True if one hot encoding should be applied. Otherwise, each category is encoded with one integer value.
+    ohe_encoders: dict
+        Keys are of type string and indicate a column name. The values are of type sklearn.preprocessing.OrdinalEncoder.
+    cols: list
+        List of string indicating categorical columns.
+
+    Returns
+    -------
+    list: List of str with column names that contain categorical values.
+
+    """
     col_names = list()
     if one_hot_encoding:
         for col in cols:
@@ -190,10 +347,33 @@ def get_categorical_column_names(one_hot_encoding,
     return col_names
 
 
-def get_column_names(static_as_sequence,
-                     cols_dict,
-                     one_hot_encoding,
-                     ohe_encoders):
+def get_column_names(static_as_sequence: bool,
+                     cols_dict: dict,
+                     one_hot_encoding: bool,
+                     ohe_encoders: dict):
+    """
+    Get column names with dynamic (event) attributes and static (case) attributes, respectively.
+    If static_as_sequence is False, case attributes will be duplicated for each timestep and
+    therefore regarded as dynamic attributes.
+
+    Parameters
+    ----------
+    static_as_sequence: bool
+        True if event attributes should be duplicated for each timestep.
+    cols_dict: dict
+        Dictionary containing information about static, dynamic, categorical and numerical columns.
+    one_hot_encoding: bool
+        True if one hot encoding should be applied. Otherwise, each category is encoded with one integer value.
+    ohe_encoders: dict
+        Keys are of type string and indicate a column name. The values are of type sklearn.preprocessing.OrdinalEncoder.
+
+    Returns
+    -------
+    list: List of str containing names of dynamic columns.
+    list: List of str containing names of static columns. If static_as_sequence is False, case attributes will be duplicated for each timestep and
+    therefore regarded as dynamic attributes. This list will then be empty.
+
+    """
 
     if static_as_sequence:
         static_col_names = None
@@ -218,24 +398,72 @@ def get_column_names(static_as_sequence,
     return dynamic_col_names, static_col_names
 
 
-def generate_set(df,
-                 prefix_based,
-                 hdf5_filepath,
-                 data_name,
-                 labels_name,
-                 cases_name,
-                 scale_label,
-                 data_columns_name,
-                 one_hot_encoding,
-                 ohe_encoders,
-                 cols_dict,
-                 case_id_column,
-                 label_column,
-                 maxlen,
-                 max_label,
-                 static_data_name, # If provided, we save static data not as sequence. If not provided, we save static data as sequence.
-                 static_data_columns_name
+def generate_set(df: pd.DataFrame,
+                 prefix_based: bool,
+                 hdf5_filepath: str,
+                 data_name: str,
+                 labels_name: str,
+                 cases_name: str,
+                 scale_label: bool,
+                 data_columns_name: str,
+                 one_hot_encoding: bool,
+                 ohe_encoders: dict,
+                 cols_dict: dict,
+                 case_id_column: str,
+                 label_column: str,
+                 maxlen: int,
+                 max_label: float,
+                 static_data_name: str,
+                 static_data_columns_name: str
                  ):
+    """
+    Creates input features and target labels and stores them to a HDF5 file. Creation is case by case
+    in order not to overload main memory.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Event log.
+    prefix_based: bool
+        Indicates whether data is prepared for prefix-based approaches (many-to-one)
+        or trace_based approaches (many-to-many)
+    hdf5_filepath: str
+        The HDF5 file to be created.
+    data_name: str
+        The dataset inside the HDF5 file that contains dynamic model input data.
+    labels_name: str
+        The dataset inside the HDF5 file that contains the target labels.
+    cases_name: str
+        The dataset inside the HDF5 file that contains the case id's.
+    scale_label: bool
+        Indicates whether target labels should be scaled.
+    data_columns_name: str
+        The dataset inside the HDF5 file that stores the columns names corresponding to dynamic input data.
+    one_hot_encoding: bool
+        True if one hot encoding should be applied. Otherwise, each category is encoded with one integer value.
+    ohe_encoders: dict
+        Keys are of type string and indicate a column name. The values are of type sklearn.preprocessing.OrdinalEncoder.
+    cols_dict: dict
+        Dictionary containing information about static, dynamic, categorical and numerical columns.
+    case_id_column: str
+        Column with case id's.
+    label_column: str
+        Column that contains the labels.
+    maxlen: int
+        Maximum trace length.
+    max_label: float
+        Maximum label value.
+    static_data_name: str
+        If provided, we save static data not as sequence. If not provided, we save static data as sequence.
+    static_data_columns_name: str
+        Name of the dataset in the hdf5 file for storing static model inputs.
+
+    Returns
+    -------
+    int: Maximum trace length.
+    float: Maximum label value.
+
+    """
 
     print('Length of input dataframe: ' + str(len(df)))
 
@@ -345,6 +573,34 @@ def _load_dataset_name(filename,
                        scale_label,
                        one_hot_encoding,
                        static_data_as_sequence):
+    """
+    Initiate creation of training, validation and test set for an event log.
+
+    Parameters
+    ----------
+    filename: str
+        Path to the event log in .csv format.
+    config: dict
+        Dataset configuration as retrieved from dataset_config.py
+    prefix_based: bool
+        Indicates whether data is prepared for prefix-based approaches (many-to-one)
+        or trace_based approaches (many-to-many)
+    hdf5_filepath_train: str
+        Filename for storing training and validation data in HDF5 file format.
+    hdf5_filepath_test: str
+        Filename for storing test data in HDF5 file format.
+    scale_label: bool
+        Indicates whether the target labels should be scaled.
+    one_hot_encoding: bool
+        Indicates whether one hot encoding is applied or integer encoding.
+    static_data_as_sequence: bool
+        Indicates whether case attributes are duplicated for each timestep.
+
+    Returns
+    -------
+    float: Value of largest label value.
+
+    """
     config = deepcopy(config)
     df = pandas.read_csv(filename, sep=';')
 
