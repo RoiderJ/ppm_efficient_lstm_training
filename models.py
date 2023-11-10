@@ -5,7 +5,21 @@ from tensorflow.keras.optimizers.legacy import Nadam
 from tensorflow.keras.models import Sequential
 
 
-def custom_mae_loss(y_true, y_pred):
+def custom_mae_loss(y_true,
+                    y_pred):
+    """
+    Function to calculate loss in a many-to-many training approach with padded features.
+
+    Parameters
+    ----------
+    y_true: Target labels.
+    y_pred: Model predictions.
+
+    Returns
+    -------
+    float: The calculated Mean Absolute Error.
+
+    """
 
     mask = tf.identity(y_true)
 
@@ -20,26 +34,58 @@ def custom_mae_loss(y_true, y_pred):
     return loss
 
 
-def get_inference_model(model_type, seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
-    if model_type == 'lstm_case_oh_pre' or model_type == 'lstm_prefix_oh_pre':
+def get_inference_model(model_type: str,
+                        seq_len: int,
+                        n_neurons: int,
+                        n_layers: int,
+                        inputs_dynamic: list,
+                        inputs_static: list):
+    """
+    Return a model that predict in a many-to-one approach.
+
+    Parameters
+    ----------
+    model_type: str
+        The model architecture.
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+
+    """
+    if model_type == 'lstm_trace_oh_pre' or model_type == 'lstm_prefix_oh_pre':
         return lstm_prefix_oh_pre(seq_len=seq_len,
                                    n_neurons=n_neurons,
                                    n_layers=n_layers,
                                    inputs_dynamic=inputs_dynamic,
                                    inputs_static=inputs_static)
-    elif model_type == 'lstm_case_emb_post' or model_type == 'lstm_prefix_emb_post':
+    elif model_type == 'lstm_trace_emb_post' or model_type == 'lstm_prefix_emb_post':
         return lstm_prefix_emb_post(seq_len=seq_len,
                                    n_neurons=n_neurons,
                                    n_layers=n_layers,
                                    inputs_dynamic=inputs_dynamic,
                                    inputs_static=inputs_static)
-    elif model_type == 'lstm_case_oh_post' or model_type == 'lstm_prefix_oh_post':
+    elif model_type == 'lstm_trace_oh_post' or model_type == 'lstm_prefix_oh_post':
         return lstm_prefix_oh_post(seq_len=seq_len,
                                   n_neurons=n_neurons,
                                   n_layers=n_layers,
                                   inputs_dynamic=inputs_dynamic,
                                   inputs_static=inputs_static)
-    elif model_type == 'lstm_case_emb_pre' or model_type == 'lstm_prefix_emb_pre':
+    elif model_type == 'lstm_trace_emb_pre' or model_type == 'lstm_prefix_emb_pre':
         return lstm_prefix_emb_pre(seq_len=seq_len,
                                     n_neurons=n_neurons,
                                     n_layers=n_layers,
@@ -55,8 +101,37 @@ def get_inference_model(model_type, seq_len, n_neurons, n_layers, inputs_dynamic
         raise ValueError('Specified Inference model does not exist.')
 
 
-def lstm_case_oh_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
-    # [['inp1', inp_dim, embed_dim, 'categorical/numerical']]
+def lstm_trace_oh_pre(seq_len: int,
+                      n_neurons: int,
+                      n_layers: int,
+                      inputs_dynamic: list,
+                      inputs_static: list):
+    """
+    Trace sequence encoding, one-hot categorical feature encoding, case attributes are a input to LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
 
     num_features = 0
     for i_ in inputs_dynamic:
@@ -89,8 +164,37 @@ def lstm_case_oh_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static
     return model
 
 
-def lstm_case_emb_post(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_trace_emb_post(seq_len: int,
+                        n_neurons: int,
+                        n_layers: int,
+                        inputs_dynamic: list,
+                        inputs_static: list):
+    """
+    Trace sequence encoding, embedding layer for categorical feature encoding, case attributes added after LSTM layers.
 
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
     inputs_dyn = list()
     for input in inputs_dynamic:
         if input[3] == 'categorical':
@@ -163,7 +267,37 @@ def lstm_case_emb_post(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_stat
     return model
 
 
-def lstm_case_oh_post(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_trace_oh_post(seq_len: int,
+                       n_neurons: int,
+                       n_layers: int,
+                       inputs_dynamic: list,
+                       inputs_static: list):
+    """
+    Trace sequence encoding, one-hot categorical feature encoding, case attributes added after LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
 
     num_features_dynamic = 0
     for i_ in inputs_dynamic:
@@ -205,7 +339,37 @@ def lstm_case_oh_post(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_stati
     return model
 
 
-def lstm_case_emb_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_trace_emb_pre(seq_len: int,
+                       n_neurons: int,
+                       n_layers: int,
+                       inputs_dynamic: list,
+                       inputs_static: list):
+    """
+    Trace sequence encoding, embedding layer categorical feature encoding, case attributes added directly to LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
 
     inputs = list()
     inputs.extend(inputs_dynamic)
@@ -252,7 +416,40 @@ def lstm_case_emb_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_stati
     return model
 
 
-def lstm_prefix_oh_pre_navarin(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_prefix_oh_pre_navarin(seq_len: int,
+                               n_neurons: int,
+                               n_layers: int,
+                               inputs_dynamic: list,
+                               inputs_static: list):
+    """
+    Implementation of DA-LSTM as provided by Navarin, Nicolo, et al. "LSTM networks for data-aware remaining
+    time prediction of business process instances." 2017 IEEE Symposium Series on Computational Intelligence
+    (SSCI). IEEE, 2017.
+    Prefix sequence encoding, one-hot categorical feature encoding, case attributes added before LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
     num_features = 0
     for i_ in inputs_dynamic:
         num_features += i_[1]
@@ -287,7 +484,38 @@ def lstm_prefix_oh_pre_navarin(seq_len, n_neurons, n_layers, inputs_dynamic, inp
     return model
 
 
-def lstm_prefix_oh_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_prefix_oh_pre(seq_len: int,
+                       n_neurons: int,
+                       n_layers: int,
+                       inputs_dynamic: list,
+                       inputs_static: list):
+    """
+    Base Model as suggested in our work to improve the training behavior of DA-LSTM.
+    Prefix sequence encoding, one-hot categorical feature encoding, case attributes added before LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
     num_features = 0
     for i_ in inputs_dynamic:
         num_features += i_[1]
@@ -323,7 +551,37 @@ def lstm_prefix_oh_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_stat
     return model
 
 
-def lstm_prefix_emb_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_prefix_emb_pre(seq_len: int,
+                        n_neurons: int,
+                        n_layers: int,
+                        inputs_dynamic: list,
+                        inputs_static: list):
+    """
+    Prefix sequence encoding, embedding layer for categorical feature encoding, case attributes added before LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
 
     inputs = list()
     inputs.extend(inputs_dynamic)
@@ -372,7 +630,37 @@ def lstm_prefix_emb_pre(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_sta
     return model
 
 
-def lstm_prefix_oh_post(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_prefix_oh_post(seq_len: int,
+                        n_neurons: int,
+                        n_layers: int,
+                        inputs_dynamic: list,
+                        inputs_static: list):
+    """
+    Prefix sequence encoding, one-hot encoding for categorical feature encoding, case attributes added after LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
     num_features_dynamic = 0
     for i_ in inputs_dynamic:
         num_features_dynamic += i_[1]
@@ -411,7 +699,37 @@ def lstm_prefix_oh_post(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_sta
     return model
 
 
-def lstm_prefix_emb_post(seq_len, n_neurons, n_layers, inputs_dynamic, inputs_static):
+def lstm_prefix_emb_post(seq_len: int,
+                         n_neurons: int,
+                         n_layers: int,
+                         inputs_dynamic: list,
+                         inputs_static: list):
+    """
+    Prefix sequence encoding, embedding layer for categorical feature encoding, case attributes added after LSTM layers.
+
+    Parameters
+    ----------
+    seq_len: int
+        Number of time steps.
+    n_neurons: int
+        Number of neurons per LSTM layer.
+    n_layers: int
+        Number of LSTM layers.
+    inputs_dynamic: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    inputs_static: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+
+    Returns
+    -------
+    keras.Model
+        The model is compiled with Nadam optimizer.
+
+    """
 
     dyn_inputs = list()
     for input in inputs_dynamic:

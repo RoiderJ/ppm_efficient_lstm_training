@@ -23,3 +23,5 @@
 - If there are problem with memory, try reducing number of threads and batch sizes
 
 - New datasets can be added to dataset_config
+
+- How to add a new model?

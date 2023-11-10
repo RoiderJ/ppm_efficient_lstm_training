@@ -16,24 +16,6 @@ helpdesk = {
     'NUMERICAL_STATIC_COLUMNS': []
 }
 
-bpic2011 = {
-    'CASE_ID_COLUMN': 'Case ID',
-    'ACTIVITY_COLUMN': 'Activity',
-    'TIMESTAMP_COLUMN': 'Complete Timestamp',
-    'CATEGORICAL_DYNAMIC_COLUMNS': ['Activity',
-                                    "Producer code",
-                                    "Section",
-                                    "Specialism code",
-                                    "group"],
-    'CATEGORICAL_STATIC_COLUMNS': ["Diagnosis",
-                                   "Treatment code",
-                                   "Diagnosis code",
-                                   "case Specialism code",
-                                   "Diagnosis Treatment Combination ID"],
-    'NUMERICAL_DYNAMIC_COLUMNS': ["Number of executions"],
-    'NUMERICAL_STATIC_COLUMNS': ["Age"]
-}
-
 bpic2015_1 = {
     'CASE_ID_COLUMN': 'Case ID',
     'ACTIVITY_COLUMN': 'Activity',
@@ -182,29 +164,6 @@ bpic2015_5 = {
     'NUMERICAL_STATIC_COLUMNS': ["SUMleges"]
 }
 
-bpic2017 = {
-    'CASE_ID_COLUMN': 'Case ID',
-    'ACTIVITY_COLUMN': 'Activity',
-    'TIMESTAMP_COLUMN': 'Complete Timestamp',
-    'CATEGORICAL_DYNAMIC_COLUMNS': ['Activity',
-                                    'Resource',
-                                    'Action',
-                                    'CreditScore',
-                                    'EventOrigin',
-                                    'lifecycle:transition'
-                                    ],
-    'CATEGORICAL_STATIC_COLUMNS': ['ApplicationType',
-                                   'LoanGoal'
-                                   ],
-    'NUMERICAL_DYNAMIC_COLUMNS': ['FirstWithdrawalAmount',
-                                  'MonthlyCost',
-                                  'NumberOfTerms',
-                                  'OfferedAmount',
-                                  "duration"],
-    'NUMERICAL_STATIC_COLUMNS': ['RequestedAmount'
-                                 ]
-}
-
 sepsis = {
     'CASE_ID_COLUMN': 'Case ID',
     'ACTIVITY_COLUMN': 'Activity',
@@ -313,26 +272,6 @@ invoice = {
                                    "Supplier.State"],
     'NUMERICAL_DYNAMIC_COLUMNS': [],
     'NUMERICAL_STATIC_COLUMNS': ["InvoiceTotalAmountWithoutVAT"]
-}
-
-traffic_fines = {
-    'CASE_ID_COLUMN': 'Case ID',
-    'ACTIVITY_COLUMN': 'Activity',
-    'TIMESTAMP_COLUMN': 'Complete Timestamp',
-    'CATEGORICAL_DYNAMIC_COLUMNS': ['Activity',
-                                    'Resource',
-                                    'lastSent',
-                                    'notificationType',
-                                    'dismissal',
-                                    'vehicleClass',  # contains missing values
-                                    'article' # Contains missing values
-                                    ],
-    'CATEGORICAL_STATIC_COLUMNS': [],
-    'NUMERICAL_DYNAMIC_COLUMNS': ['amount',
-                                  'expense',
-                                  'points'
-                                 ],
-    'NUMERICAL_STATIC_COLUMNS': []
 }
 
 Production_Data = {

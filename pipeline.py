@@ -12,17 +12,56 @@ import shutil
 import joblib
 
 
-def perform_optuna_study(search_space,
-                         num_trials,
-                         results_location,
-                         training_data_generator,
-                         validation_data_generator,
-                         dynamic_input_config,
-                         static_input_config,
-                         num_training_epochs,
-                         model_type,
-                         max_label,
-                         scale_label):
+def perform_optuna_study(search_space: dict,
+                         num_trials: int,
+                         results_location: str,
+                         training_data_generator: tf.keras.utils.Sequence,
+                         validation_data_generator: tf.keras.utils.Sequence,
+                         dynamic_input_config: list,
+                         static_input_config: list,
+                         num_training_epochs: int,
+                         model_type: str,
+                         max_label: float,
+                         scale_label: bool):
+    """
+    Perform full hyperparameter tuning with grid search.
+
+    Parameters
+    ----------
+    search_space: dict
+        Keys are of type string and indicate the name of a hyperparameter. Values are of type list and
+        give the individual values samples for grid search.
+    num_trials: int
+        The number of trials to be performed. Sometimes studies might have to be continued, therefore
+        this number might be lower than the total number of all hyperparameter combinatins.
+    results_location: str
+        The folder to which the results will be saved.
+    training_data_generator: tf.keras.utils.Sequence
+        Data generator for training data.
+    validation_data_generator: tf.keras.utils.Sequence
+        Data generator for validation data.
+    dynamic_input_config: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    static_input_config: list
+        Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+        each input features, e. g.
+        ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+    num_training_epochs: int
+        The number of maximum training epochs per model.
+    model_type: str
+        The model architecture to be used for training.
+    max_label: float
+        Maximum label value.
+    scale_label: bool
+        Whether labels are scaled or not.
+
+    Returns
+    -------
+    pd.DataFrame: Dataframe containing info produced by optuna for hyperparameter tuning results and metadata.
+
+    """
     Path(results_location).mkdir(parents=True, exist_ok=True)
     p = str(Path(results_location).resolve()) # Get absolute path
 
@@ -84,36 +123,32 @@ def perform_optuna_study(search_space,
     return df
 
 
-def case_based_inference(model,
-                         data_generator,
-                         max_label,
-                         scale_label,
-                         seq_len):
+def predict(model: tf.keras.Model,
+            data_generator: tf.keras.utils.Sequence,
+            prefix_based: bool,
+            max_label: float,
+            scale_label: bool):
+    """
+    Predict a given dataset.
 
-    preds = model.predict(data_generator,
-                          verbose=1,
-                          callbacks=[],
-                          max_queue_size=64,
-                          workers=8,
-                          use_multiprocessing=False)
-    labels = data_generator.y[:]
-    preds = np.reshape(preds, (len(labels), seq_len))[:, -1]
+    Parameters
+    ----------
+    model: tf.keras.Model
+        A trained model that is used for predictions.
+    data_generator: tf.keras.utils.Sequence
+        The data generator providing the input data.
+    prefix_based: bool
+        Indicates whether the model architecture is prefix-based
+    max_label: float
+        The maximum label value.
+    scale_label: bool
+        Indicates whether the target labels of the data generator are scaled.
 
-    if scale_label:
-        preds = preds * max_label
-        labels = labels * max_label
+    Returns
+    -------
+    pd.DataFrame: A Dataframe with all the predictions and target labels.
 
-    data = {'preds': preds, 'labels': labels}
-    res_df = pd.DataFrame(data=data)
-
-    return res_df
-
-
-def predict(model,
-            data_generator,
-            prefix_based,
-            max_label,
-            scale_label):
+    """
 
     preds = model.predict(data_generator,
                           verbose=1,
@@ -143,11 +178,32 @@ def predict(model,
     return res_df
 
 
-def test(model,
-         data_generator,
-         prefix_based,
-         max_label,
-         scale_label):
+def test(model: tf.keras.Model,
+         data_generator: tf.keras.utils.Sequence,
+         prefix_based: bool,
+         max_label: float,
+         scale_label: bool):
+    """
+    Apply a model and return Mean Absolute Error.
+
+    Parameters
+    ----------
+    model: tf.keras.Model
+        A trained model that is used for predictions.
+    data_generator: tf.keras.utils.Sequence
+        The data generator providing the input data.
+    prefix_based: bool
+        Indicates whether the model architecture is prefix-based
+    max_label: float
+        The maximum label value.
+    scale_label: bool
+        Indicates whether the target labels of the data generator are scaled.
+
+    Returns
+    -------
+    float: Mean Absolute Error the model achieved.
+
+    """
     res_df, durations_df = predict(model=model,
                                    prefix_based=prefix_based,
                                    max_label=max_label,
@@ -157,17 +213,48 @@ def test(model,
 
 
 class Objective:
+    """
+    Objective that defines the procedure for one optuna trial.
+    """
     def __init__(self,
-                 training_data_generator,
-                 validation_data_generator,
-                 results_location,
-                 dynamic_input_config,
-                 static_input_config,
-                 num_training_epochs,
-                 model_type,
-                 scale_label,
-                 max_label
+                 training_data_generator: tf.keras.utils.Sequence,
+                 validation_data_generator: tf.keras.utils.Sequence,
+                 results_location: str,
+                 dynamic_input_config: list,
+                 static_input_config: list,
+                 num_training_epochs: int,
+                 model_type: str,
+                 scale_label: bool,
+                 max_label: float
                  ):
+        """
+        Constructor of the class.
+
+        Parameters
+        ----------
+        training_data_generator: tf.keras.utils.Sequence
+            Generator providing training data.
+        validation_data_generator: tf.keras.utils.Sequence
+            Generator providing validation data.
+        results_location: str
+            Folder to which the results will be saved.
+        dynamic_input_config: list
+            Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+            each input features, e. g.
+            ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+        static_input_config: list
+            Standardized list to indicate ```[input_name, input_dimension, embedding_dimension, data_type``` for
+            each input features, e. g.
+            ```[['inp1', inp_dim, embed_dim, 'categorical/numerical']]```.
+        num_training_epochs: int
+            Number of maximum training epochs for the model to be trained.
+        model_type: str
+            The model architecture to be used.
+        scale_label: bool
+            Indicates whether the target labels of the generators are scaled.
+        max_label: float
+            The maximum value of all training labels.
+        """
         self.training_data_generator = training_data_generator
         self.validation_data_generator = validation_data_generator
         self.results_location = results_location
@@ -179,7 +266,21 @@ class Objective:
         self.max_label = max_label
 
 
-    def __call__(self, trial):
+    def __call__(self,
+                 trial: optuna.trial.Trial):
+        """
+        Function to run one hyperparameter trial. Automatically called by optuna.
+
+        Parameters
+        ----------
+        trial: optuna.trial.Trial
+            Trial object passed by optuna.
+
+        Returns
+        -------
+        float: Mean absolute error which the model achieved on the validation set.
+
+        """
 
         print('CURRENT TRIAL: ', str(trial.number))
 
@@ -222,11 +323,32 @@ class Objective:
         return mae
 
     def fit(self,
-            results_filepath,
-            model,
-            training_generator,
-            validation_generator,
-            training_epochs):
+            results_filepath: str,
+            model: tf.keras.Model,
+            training_generator: tf.keras.utils.Sequence,
+            validation_generator: tf.keras.utils.Sequence,
+            training_epochs: int):
+        """
+        Train a neural network.
+
+        Parameters
+        ----------
+        results_filepath: str
+            Location to which the training results will be saved.
+        model: tf.keras.Model
+            Model to be trained.
+        training_generator: tf.keras.utils.Sequence
+            Generator providing the training data.
+        validation_generator: tf.keras.utils.Sequence
+            Generator prodiving the validation data.
+        training_epochs: int
+            Maximum number of training epochs for a model.
+
+        Returns
+        -------
+        None
+
+        """
         # Define callbacks
         early_stopping = EarlyStopping(patience=15, monitor='val_loss')
         model_checkpoint = ModelCheckpoint(results_filepath + "/model_weights_best.h5",

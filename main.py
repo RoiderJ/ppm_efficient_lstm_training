@@ -57,19 +57,19 @@ if __name__ == '__main__':
 
     # Set parameters for the defined model type that is applied
     scale_label = True
-    if model_type == 'lstm_case_oh_pre':
+    if model_type == 'lstm_trace_oh_pre':
         prefix_based = False
         one_hot_encoding = True
         static_data_as_sequence = True
-    elif model_type == 'lstm_case_emb_post':
+    elif model_type == 'lstm_trace_emb_post':
         prefix_based = False
         one_hot_encoding = False
         static_data_as_sequence = False
-    elif model_type == 'lstm_case_oh_post':
+    elif model_type == 'lstm_trace_oh_post':
         prefix_based = False
         one_hot_encoding = True
         static_data_as_sequence = False
-    elif model_type == 'lstm_case_emb_pre':
+    elif model_type == 'lstm_trace_emb_pre':
         prefix_based = False
         one_hot_encoding = False
         static_data_as_sequence = True
