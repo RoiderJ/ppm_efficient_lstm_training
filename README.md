@@ -42,7 +42,7 @@ You can use the environment with:
    
    Example:
     ```
-   python main.py helpdesk prefix_oh_pre 7 64
+   python main.py helpdesk lstm_prefix_oh_pre 7 64
    ```
    
 ## Model Architectures
