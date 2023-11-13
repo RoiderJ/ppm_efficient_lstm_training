@@ -204,12 +204,12 @@ def test(model: tf.keras.Model,
     float: Mean Absolute Error the model achieved.
 
     """
-    res_df, durations_df = predict(model=model,
+    res_df = predict(model=model,
                                    prefix_based=prefix_based,
                                    max_label=max_label,
                                    scale_label=scale_label,
                                    data_generator=data_generator)
-    return mean_absolute_error(y_true=res_df['labels'], y_pred=res_df['preds']) / 3600. / 24., durations_df
+    return mean_absolute_error(y_true=res_df['labels'], y_pred=res_df['preds']) / 3600. / 24.
 
 
 class Objective:
