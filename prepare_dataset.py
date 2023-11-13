@@ -505,7 +505,7 @@ def generate_set(df: pd.DataFrame,
             data = sequence.pad_sequences(data, maxlen=maxlen, dtype=float)
 
             if prefix_based:
-                labels = list(chain.from_iterable(labels))
+                labels = np.asarray(list(chain.from_iterable(labels)))
             else:
                 labels = sequence.pad_sequences(labels, maxlen=maxlen, dtype=float, value=None)
             if scale_label:
