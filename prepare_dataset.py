@@ -667,11 +667,11 @@ def _load_dataset_name(filename,
     numerical_cols.extend(num_dyn_cols)
     numerical_cols.extend(num_stat_cols)
 
-    for cat_col in categorical_cols:
-        df[cat_col] = df[cat_col].astype(str).astype(pd.CategoricalDtype())
-
     df[numerical_cols] = df[numerical_cols].fillna(0.)
     df[categorical_cols] = df[categorical_cols].fillna('__NO_VALUE_PROVIDED__')
+
+    for cat_col in categorical_cols:
+        df[cat_col] = df[cat_col].astype(str).astype(pd.CategoricalDtype())
 
     cases_sorted = df.groupby(by=config['CASE_ID_COLUMN'])[config['TIMESTAMP_COLUMN']].min().sort_values().index.tolist()
     num_cases = len(cases_sorted)
