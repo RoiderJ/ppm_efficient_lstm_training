@@ -14,8 +14,8 @@ import pipeline
 from sklearn.metrics import mean_absolute_error
 
 # Please add
-data_storage = '' # Location of event logs
-STORAGE_LOC = '' # Location to save datasets and results of model training to
+data_storage = 'data/logs/' # Location of event logs
+STORAGE_LOC = 'data/results/' # Location to save datasets and results of model training to
 
 # Hyperparameters four our experiments
 search_space = {
@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
     # Get model which performed best on validation set
     trials_df = trials_df[trials_df['state'] == 'COMPLETE']
-    trials_df = trials_df[trials_df['value'] == trials_df['value'].max()]
+    trials_df = trials_df[trials_df['value'] == trials_df['value'].min()]
     best_trial = trials_df['number'].iloc[0]
 
     model_location = results_location + '/trial_' + str(best_trial) + '/'
