@@ -29,6 +29,9 @@ num_training_epochs = 500
 # Parameter required for optina. Does not have to be changed!
 num_random_trials = 0
 
+# Whether to include or exclude process end in predictions
+exclude_zero_labels = True
+
 
 if __name__ == '__main__':
     dataset = sys.argv[1]
@@ -102,13 +105,14 @@ if __name__ == '__main__':
     if not Path(hdf5_filepath).exists():
         print('Creating hdf5 dataset.')
         max_label = prepare_dataset.load_dataset(name=dataset,
-                                                   prefix_based=prefix_based,
-                                                   hdf5_filepath_train=hdf5_filepath,
-                                                   hdf5_filepath_test=hdf5_filepath_test,
-                                                   scale_label=scale_label,
-                                                   one_hot_encoding=one_hot_encoding,
-                                                   static_data_as_sequence=static_data_as_sequence,
-                                                   data_storage=data_storage)
+                                                 prefix_based=prefix_based,
+                                                 hdf5_filepath_train=hdf5_filepath,
+                                                 hdf5_filepath_test=hdf5_filepath_test,
+                                                 scale_label=scale_label,
+                                                 one_hot_encoding=one_hot_encoding,
+                                                 static_data_as_sequence=static_data_as_sequence,
+                                                 data_storage=data_storage,
+                                                 exclude_zero_labels=exclude_zero_labels)
     else:
         print('Loading existing hdf5 dataset.')
         with h5py.File(hdf5_filepath, 'r') as f:

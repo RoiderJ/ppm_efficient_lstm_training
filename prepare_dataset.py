@@ -42,7 +42,8 @@ def load_dataset(name: str,
                  one_hot_encoding: bool,
                  prefix_based: bool,
                  static_data_as_sequence: bool,
-                 data_storage: str):
+                 data_storage: str,
+                 exclude_zero_labels: bool):
     """
     Initiate preparation of dataset.
 
@@ -65,6 +66,9 @@ def load_dataset(name: str,
         Indicates whether case attributes are duplicated for each timestep.
     data_storage: str
         Location where the event log can be found.
+    exclude_zero_labels: bool
+        Whether to exlcude zero labels or not. If a process has ended, we might not be interested in making a
+        prediction anymore.
 
     Returns
     -------
@@ -79,7 +83,8 @@ def load_dataset(name: str,
                               hdf5_filepath_test=hdf5_filepath_test,
                               scale_label=scale_label,
                               one_hot_encoding=one_hot_encoding,
-                              static_data_as_sequence=static_data_as_sequence
+                              static_data_as_sequence=static_data_as_sequence,
+                              exclude_zero_labels=exclude_zero_labels
                               )
 
 
@@ -572,7 +577,8 @@ def _load_dataset_name(filename,
                        hdf5_filepath_test,
                        scale_label,
                        one_hot_encoding,
-                       static_data_as_sequence):
+                       static_data_as_sequence,
+                       exclude_zero_labels):
     """
     Initiate creation of training, validation and test set for an event log.
 
@@ -595,6 +601,9 @@ def _load_dataset_name(filename,
         Indicates whether one hot encoding is applied or integer encoding.
     static_data_as_sequence: bool
         Indicates whether case attributes are duplicated for each timestep.
+    exclude_zero_labels: bool
+        Whether to exlcude zero labels or not. If a process has ended, we might not be interested in making a
+        prediction anymore.
 
     Returns
     -------
@@ -629,6 +638,11 @@ def _load_dataset_name(filename,
                                                  timestamp_column=config['TIMESTAMP_COLUMN'],
                                                  case_id_column=config['CASE_ID_COLUMN'],
                                                  new_column_name='remaining_time')
+
+    print(df)
+    if exclude_zero_labels:
+        df = df[df['remaining_time'] != 0.]
+    print(df)
 
     # Calculate additional features
     df = feature_calculation.day_of_week(df=df,
